@@ -1,4 +1,3 @@
-// Lista única usada para criar os botões do menu.
 const menuItems = [
   "Visão Geral",
   "Lançamentos",
@@ -11,19 +10,32 @@ const menuItems = [
 function Sidebar({ activePage, onNavigate }) {
   return (
     <aside className="sidebar">
-      <h1>Moneta</h1>
-      <nav className="navigation">
-        {/* Cria um botão para cada item da lista. */}
+      <div className="brand">
+        <h1>Moneta</h1>
+        <span>PLANEJADOR PESSOAL</span>
+      </div>
+
+      <nav className="navigation" aria-label="Navegação principal">
+        {/* Cria um botão para cada página disponível no menu. */}
         {menuItems.map((item) => (
           <button
-            key={item}
             className={activePage === item ? "nav-item active" : "nav-item"}
+            key={item}
             onClick={() => onNavigate(item)}
+            type="button"
           >
             {item}
           </button>
         ))}
       </nav>
+
+      <div className="profile">
+        <span>PA</span>
+        <div>
+          <strong>Pablo</strong>
+          <small>Minha conta</small>
+        </div>
+      </div>
     </aside>
   );
 }

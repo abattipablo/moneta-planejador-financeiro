@@ -1,16 +1,34 @@
-# React + Vite
+# Moneta
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação web de planejamento financeiro pessoal feita para estudo e portfólio.
 
-Currently, two official plugins are available:
+O projeto permite registrar receitas, despesas e investimentos, acompanhar o resumo financeiro e visualizar os dados por período, categoria e tipo de lançamento.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tecnologias
 
-## React Compiler
+- React
+- JavaScript
+- Vite
+- CSS puro
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Funcionalidades atuais
 
-## Expanding the ESLint configuration
+- Visão Geral com filtros de período, categoria e tipo.
+- Resumo de receitas, despesas, saldo e taxa de economia.
+- Gráfico de fluxo do período e despesas por categoria.
+- Cadastro, edição e exclusão de lançamentos.
+- Data no formato brasileiro (`dd/mm/aaaa`).
+- Tipos de lançamento: receita, despesa e investimento.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Como rodar o projeto
+
+```bash
+npm install
+npm run dev
+```
+
+## Próximos passos
+
+- Criar a aba Contas e conectar cada lançamento a uma conta real.
+- Criar as abas de Orçamentos, Metas e Investimentos.
+- Integrar o Supabase para salvar dados por usuário.
