@@ -62,7 +62,12 @@ function getValueClass(type) {
   return "expense-text";
 }
 
+function getAccountName(accountId, accounts) {
+  return accounts.find((account) => account.id === accountId)?.name ?? "Sem conta";
+}
+
 function Transactions({
+  accounts,
   transactions,
   onAddTransaction,
   onDeleteTransaction,
@@ -74,7 +79,7 @@ function Transactions({
   const [category, setCategory] = useState("");
   const [type, setType] = useState("");
   const [date, setDate] = useState("");
-  const [account, setAccount] = useState("Carteira principal");
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [note, setNote] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -93,7 +98,7 @@ function Transactions({
     setCategory("");
     setType("");
     setDate("");
-    setAccount("Carteira principal");
+    setAccountId(accounts[0]?.id ?? "");
     setNote("");
     setDateError("");
     setEditingId(null);
@@ -111,7 +116,7 @@ function Transactions({
     setCategory(transaction.category);
     setType(transaction.type);
     setDate(formatDateForInput(transaction.date));
-    setAccount(transaction.account ?? "Carteira principal");
+    setAccountId(transaction.accountId ?? accounts[0]?.id ?? "");
     setNote(transaction.note ?? "");
     setEditingId(transaction.id);
     setShowForm(true);
@@ -143,7 +148,7 @@ function Transactions({
       category,
       type,
       date: isoDate,
-      account,
+      accountId,
       note,
     };
 
@@ -269,11 +274,16 @@ function Transactions({
             Conta *
             <select
               id="account"
-              onChange={(event) => setAccount(event.target.value)}
+              onChange={(event) => setAccountId(event.target.value)}
               required
-              value={account}
+              value={accountId}
             >
-              <option>Carteira principal</option>
+              <option disabled value="">Selecione uma conta</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -336,6 +346,8 @@ function Transactions({
                     <strong>{transaction.description}</strong>
                     <span>
                       {transaction.category} · {formatTransactionDate(transaction.date)}
+                      {" · "}
+                      {getAccountName(transaction.accountId, accounts)}
                     </span>
                   </div>
                   <div className="transaction-actions">

@@ -102,7 +102,11 @@ function getValueClass(type) {
   return "expense-text";
 }
 
-function Overview({ transactions, onViewTransactions }) {
+function getAccountName(accountId, accounts) {
+  return accounts.find((account) => account.id === accountId)?.name ?? "Sem conta";
+}
+
+function Overview({ accounts, transactions, onViewTransactions }) {
   const availableMonths = [
     ...new Set(
       transactions
@@ -341,6 +345,8 @@ function Overview({ transactions, onViewTransactions }) {
                 <strong>{transaction.description}</strong>
                 <span>
                   {transaction.category} · {formatTransactionDate(transaction.date)}
+                  {" · "}
+                  {getAccountName(transaction.accountId, accounts)}
                 </span>
               </div>
               <strong className={getValueClass(transaction.type)}>
