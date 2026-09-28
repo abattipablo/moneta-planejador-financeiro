@@ -28,6 +28,8 @@ function Accounts({ accounts, onAddAccount, onDeleteAccount, transactions }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const totalBalance = accounts.reduce(
     (total, account) => total + getAccountBalance(account, transactions),
@@ -37,6 +39,7 @@ function Accounts({ accounts, onAddAccount, onDeleteAccount, transactions }) {
   function resetForm() {
     setName("");
     setType("");
+    setFormError("");
   }
 
   function closeForm() {
@@ -44,29 +47,34 @@ function Accounts({ accounts, onAddAccount, onDeleteAccount, transactions }) {
     resetForm();
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    setFormError("");
+    setIsSaving(true);
 
-    onAddAccount({
-      id: crypto.randomUUID(),
+    const error = await onAddAccount({
       name: name.trim(),
       type,
     });
 
+    if (error) {
+      setFormError(error);
+      setIsSaving(false);
+      return;
+    }
+
     closeForm();
   }
 
-  function handleDeleteClick(account) {
+  async function handleDeleteClick(account) {
     const shouldDelete = window.confirm(`Excluir a conta "${account.name}"?`);
 
     if (!shouldDelete) return;
 
-    const wasDeleted = onDeleteAccount(account.id);
+    const error = await onDeleteAccount(account.id);
 
-    if (!wasDeleted) {
-      window.alert(
-        "Não é possível excluir uma conta que já possui lançamentos. Exclua ou edite os lançamentos primeiro.",
-      );
+    if (error) {
+      window.alert(`Não foi possível excluir a conta: ${error}`);
     }
   }
 
@@ -126,11 +134,12 @@ function Accounts({ accounts, onAddAccount, onDeleteAccount, transactions }) {
           </label>
 
           <div className="form-actions">
+            {formError && <span className="form-submit-error">{formError}</span>}
             <button className="secondary-button" onClick={closeForm} type="button">
               Cancelar
             </button>
-            <button className="primary-button" type="submit">
-              Salvar conta
+            <button className="primary-button" disabled={isSaving} type="submit">
+              {isSaving ? "Salvando..." : "Salvar conta"}
             </button>
           </div>
         </form>

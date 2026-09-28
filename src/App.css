@@ -14,6 +14,9 @@ button { cursor: pointer; }
 .profile > span { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: #9775ff; color: #150f28; font-size: 8px; font-weight: 800; }
 .profile strong, .profile small { display: block; }
 .profile strong { font-size: 10px; }.profile small { margin-top: 2px; color: #9187aa; font-size: 8px; }
+.sign-out-button { margin-top: 3px; padding: 0; border: 0; background: transparent; color: #c7b9ff; font-size: 9px; }
+
+.auth-page, .auth-loading { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: radial-gradient(circle at top, #21183d 0, #0c0917 52%); }.auth-loading { color: #c7b9ff; font-size: 14px; }.auth-card { width: min(100%, 430px); padding: 30px; border: 1px solid #30264d; border-radius: 14px; background: #18122c; box-shadow: 0 24px 60px #05030d80; }.auth-brand span { color: #c7b9ff; font-size: 9px; font-weight: 700; }.auth-brand h1 { margin: 8px 0 6px; font-size: 32px; letter-spacing: -1px; }.auth-brand p { margin: 0; color: #a39ab9; font-size: 13px; }.auth-form { display: grid; gap: 16px; margin-top: 28px; }.auth-submit { width: 100%; margin-top: 4px; }.auth-submit:disabled { cursor: wait; opacity: .7; }.auth-error, .auth-message { margin: -4px 0 0; font-size: 11px; }.auth-error { color: #ff8aa6; }.auth-message { color: #62e5a6; }.auth-switch { display: flex; justify-content: center; gap: 6px; margin: 23px 0 0; color: #a39ab9; font-size: 11px; }.auth-switch button { padding: 0; border: 0; background: transparent; color: #c7b9ff; font-size: inherit; font-weight: 700; }
 
 .content { width: min(100%, 1120px); padding: 36px 28px 56px; margin: 0 auto; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
@@ -76,4 +79,7 @@ select option, select optgroup { background: #18122c; color: #f4efff; }
 .edit-button, .delete-button, .text-button { font-size: 10px; }
 .form-heading h2 { font-size: 15px; }
 .form-heading p, .form-field, .form-error { font-size: 10px; }
+.form-submit-error { margin-right: auto; color: #ff8aa6; font-size: 10px; }
+.form-actions { align-items: center; }
+.data-error { margin: 0 0 18px; padding: 10px 12px; border: 1px solid #75405a; border-radius: 8px; background: #321827; color: #ffb2c3; font-size: 11px; }
 .form-field input, .form-field select { font-size: 11px; }

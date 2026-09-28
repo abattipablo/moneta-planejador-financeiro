@@ -72,6 +72,7 @@ function Transactions({
   onAddTransaction,
   onDeleteTransaction,
   onUpdateTransaction,
+  onViewAccounts,
 }) {
   // Estados usados nos campos do formulário.
   const [description, setDescription] = useState("");
@@ -84,6 +85,8 @@ function Transactions({
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [dateError, setDateError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const incomeTotal = transactions
     .filter((transaction) => transaction.type === "income")
@@ -101,6 +104,7 @@ function Transactions({
     setAccountId(accounts[0]?.id ?? "");
     setNote("");
     setDateError("");
+    setFormError("");
     setEditingId(null);
   }
 
@@ -119,20 +123,25 @@ function Transactions({
     setAccountId(transaction.accountId ?? accounts[0]?.id ?? "");
     setNote(transaction.note ?? "");
     setEditingId(transaction.id);
+    setFormError("");
     setShowForm(true);
   }
 
-  function handleDeleteClick(transaction) {
+  async function handleDeleteClick(transaction) {
     const shouldDelete = window.confirm(
       `Excluir o lançamento "${transaction.description}"?`,
     );
 
     if (shouldDelete) {
-      onDeleteTransaction(transaction.id);
+      const error = await onDeleteTransaction(transaction.id);
+
+      if (error) {
+        window.alert(`Não foi possível excluir o lançamento: ${error}`);
+      }
     }
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const isoDate = toIsoDate(date);
@@ -141,6 +150,9 @@ function Transactions({
       setDateError("Informe uma data válida no formato dd/mm/aaaa.");
       return;
     }
+
+    setFormError("");
+    setIsSaving(true);
 
     const transactionData = {
       description: description.trim(),
@@ -153,9 +165,21 @@ function Transactions({
     };
 
     if (editingId) {
-      onUpdateTransaction({ id: editingId, ...transactionData });
+      const error = await onUpdateTransaction({ id: editingId, ...transactionData });
+
+      if (error) {
+        setFormError(error);
+        setIsSaving(false);
+        return;
+      }
     } else {
-      onAddTransaction({ id: crypto.randomUUID(), ...transactionData });
+      const error = await onAddTransaction(transactionData);
+
+      if (error) {
+        setFormError(error);
+        setIsSaving(false);
+        return;
+      }
     }
 
     closeForm();
@@ -182,10 +206,17 @@ function Transactions({
         {!showForm && (
           <button
             className="primary-button"
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              if (accounts.length === 0) {
+                onViewAccounts();
+                return;
+              }
+
+              setShowForm(true);
+            }}
             type="button"
           >
-            + Novo lançamento
+            {accounts.length === 0 ? "+ Cadastrar conta" : "+ Novo lançamento"}
           </button>
         )}
       </header>
@@ -299,11 +330,16 @@ function Transactions({
           </label>
 
           <div className="form-actions">
+            {formError && <span className="form-submit-error">{formError}</span>}
             <button className="secondary-button" onClick={closeForm} type="button">
               Cancelar
             </button>
-            <button className="primary-button" type="submit">
-              {editingId ? "Salvar alterações" : "Salvar lançamento"}
+            <button className="primary-button" disabled={isSaving} type="submit">
+              {isSaving
+                ? "Salvando..."
+                : editingId
+                  ? "Salvar alterações"
+                  : "Salvar lançamento"}
             </button>
           </div>
         </form>

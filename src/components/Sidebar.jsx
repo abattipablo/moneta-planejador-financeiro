@@ -7,7 +7,10 @@ const menuItems = [
   "Investimentos",
 ];
 
-function Sidebar({ activePage, onNavigate }) {
+function Sidebar({ activePage, onNavigate, onSignOut, user }) {
+  const userName = user.email?.split("@")[0] ?? "Usuário";
+  const initials = userName.slice(0, 2).toUpperCase();
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -30,10 +33,12 @@ function Sidebar({ activePage, onNavigate }) {
       </nav>
 
       <div className="profile">
-        <span>PA</span>
+        <span>{initials}</span>
         <div>
-          <strong>Pablo</strong>
-          <small>Minha conta</small>
+          <strong>{userName}</strong>
+          <button className="sign-out-button" onClick={onSignOut} type="button">
+            Sair da conta
+          </button>
         </div>
       </div>
     </aside>
