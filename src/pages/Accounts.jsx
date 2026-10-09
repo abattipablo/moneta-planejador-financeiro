@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const accountTypes = [
   "Conta corrente",
@@ -30,6 +31,9 @@ function Accounts({ accounts, onAddAccount, onDeleteAccount, transactions }) {
   const [type, setType] = useState("");
   const [formError, setFormError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const totalBalance = accounts.reduce(
     (total, account) => total + getAccountBalance(account, transactions),
@@ -66,16 +70,24 @@ function Accounts({ accounts, onAddAccount, onDeleteAccount, transactions }) {
     closeForm();
   }
 
-  async function handleDeleteClick(account) {
-    const shouldDelete = window.confirm(`Excluir a conta "${account.name}"?`);
+  function handleDeleteClick(account) {
+    setAccountToDelete(account);
+    setDeleteError("");
+  }
 
-    if (!shouldDelete) return;
+  async function confirmDelete() {
+    setIsDeleting(true);
 
-    const error = await onDeleteAccount(account.id);
+    const error = await onDeleteAccount(accountToDelete.id);
 
     if (error) {
-      window.alert(`Não foi possível excluir a conta: ${error}`);
+      setDeleteError(error);
+      setIsDeleting(false);
+      return;
     }
+
+    setAccountToDelete(null);
+    setIsDeleting(false);
   }
 
   return (
@@ -182,6 +194,17 @@ function Accounts({ accounts, onAddAccount, onDeleteAccount, transactions }) {
           </section>
         </>
       )}
+
+      <ConfirmDialog
+        confirmLabel="Excluir conta"
+        error={deleteError}
+        isLoading={isDeleting}
+        isOpen={Boolean(accountToDelete)}
+        message={`A conta "${accountToDelete?.name ?? ""}" será removida. Contas com lançamentos não podem ser excluídas.`}
+        onCancel={() => setAccountToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Excluir conta?"
+      />
     </section>
   );
 }

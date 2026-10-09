@@ -3,6 +3,7 @@ import "./App.css";
 import Sidebar from "./components/Sidebar";
 import Accounts from "./pages/Accounts";
 import Auth from "./pages/Auth";
+import Budgets from "./pages/Budgets";
 import Overview from "./pages/Overview";
 import Transactions from "./pages/Transactions";
 import { supabase } from "./lib/supabase";
@@ -15,15 +16,48 @@ function formatTransactionFromDatabase(transaction) {
   };
 }
 
+function formatBudgetFromDatabase(budget) {
+  return {
+    ...budget,
+    limitAmount: Number(budget.limit_amount),
+  };
+}
+
 function App() {
   // O App guarda os dados que precisam ser usados em mais de uma página.
   const [activePage, setActivePage] = useState("Visão Geral");
   const [accounts, setAccounts] = useState([]);
+  const [budgets, setBudgets] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [session, setSession] = useState(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataError, setDataError] = useState("");
+  const [sidebarSize, setSidebarSize] = useState(
+    () => localStorage.getItem("moneta-sidebar-size") ?? "expanded",
+  );
+  const [isSidebarManuallyHidden, setIsSidebarManuallyHidden] = useState(
+    () => localStorage.getItem("moneta-sidebar-hidden") === "true",
+  );
+  const [isCompactScreen, setIsCompactScreen] = useState(
+    () => window.matchMedia("(max-width: 760px)").matches,
+  );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isSidebarHidden =
+    isSidebarManuallyHidden || (isCompactScreen && !isMobileMenuOpen);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 760px)");
+
+    function updateScreenSize(event) {
+      setIsCompactScreen(event.matches);
+      setIsMobileMenuOpen(false);
+    }
+
+    mediaQuery.addEventListener("change", updateScreenSize);
+
+    return () => mediaQuery.removeEventListener("change", updateScreenSize);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -64,21 +98,26 @@ function App() {
       setIsLoadingData(true);
       setDataError("");
 
-      const [accountsResult, transactionsResult] = await Promise.all([
+      const [accountsResult, transactionsResult, budgetsResult] = await Promise.all([
         supabase.from("accounts").select("id, name, type").order("created_at", { ascending: false }),
         supabase
           .from("transactions")
           .select("id, account_id, description, category, value, type, date, note")
           .order("date", { ascending: false }),
+        supabase
+          .from("budgets")
+          .select("id, category, month, limit_amount")
+          .order("month", { ascending: false }),
       ]);
 
       if (!isMounted) return;
 
-      if (accountsResult.error || transactionsResult.error) {
+      if (accountsResult.error || transactionsResult.error || budgetsResult.error) {
         setDataError("Não foi possível carregar seus dados. Tente atualizar a página.");
       } else {
         setAccounts(accountsResult.data);
         setTransactions(transactionsResult.data.map(formatTransactionFromDatabase));
+        setBudgets(budgetsResult.data.map(formatBudgetFromDatabase));
       }
 
       setIsLoadingData(false);
@@ -199,8 +238,76 @@ function App() {
     return null;
   }
 
+  async function handleAddBudget(newBudget) {
+    const { data, error } = await supabase
+      .from("budgets")
+      .insert({
+        user_id: session.user.id,
+        category: newBudget.category,
+        month: `${newBudget.month}-01`,
+        limit_amount: newBudget.limitAmount,
+      })
+      .select("id, category, month, limit_amount")
+      .single();
+
+    if (error) return error.message;
+
+    setBudgets((currentBudgets) => [formatBudgetFromDatabase(data), ...currentBudgets]);
+
+    return null;
+  }
+
+  async function handleUpdateBudget(updatedBudget) {
+    const { data, error } = await supabase
+      .from("budgets")
+      .update({
+        category: updatedBudget.category,
+        month: `${updatedBudget.month}-01`,
+        limit_amount: updatedBudget.limitAmount,
+      })
+      .eq("id", updatedBudget.id)
+      .select("id, category, month, limit_amount")
+      .single();
+
+    if (error) return error.message;
+
+    setBudgets((currentBudgets) =>
+      currentBudgets.map((budget) =>
+        budget.id === data.id ? formatBudgetFromDatabase(data) : budget,
+      ),
+    );
+
+    return null;
+  }
+
+  async function handleDeleteBudget(budgetId) {
+    const { error } = await supabase.from("budgets").delete().eq("id", budgetId);
+
+    if (error) return error.message;
+
+    setBudgets((currentBudgets) =>
+      currentBudgets.filter((budget) => budget.id !== budgetId),
+    );
+
+    return null;
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
+  }
+
+  function handleToggleSidebarSize() {
+    setSidebarSize((currentSize) => {
+      const nextSize = currentSize === "expanded" ? "compact" : "expanded";
+      localStorage.setItem("moneta-sidebar-size", nextSize);
+
+      return nextSize;
+    });
+  }
+
+  function handleSidebarVisibility(isHidden) {
+    setIsSidebarManuallyHidden(isHidden);
+    localStorage.setItem("moneta-sidebar-hidden", String(isHidden));
   }
 
   if (isLoadingSession) {
@@ -216,11 +323,34 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div
+      className={`app sidebar-${sidebarSize} ${
+        isSidebarHidden ? "sidebar-hidden" : ""
+      }`}
+    >
+      {isSidebarHidden && (
+        <button
+          className="app-menu-trigger"
+          onClick={() => {
+            handleSidebarVisibility(false);
+            setIsMobileMenuOpen(true);
+          }}
+          type="button"
+        >
+          ☰ Menu
+        </button>
+      )}
+
       <Sidebar
         activePage={activePage}
         onNavigate={setActivePage}
         onSignOut={handleSignOut}
+        onToggleSize={handleToggleSidebarSize}
+        onHide={() => {
+          handleSidebarVisibility(true);
+          setIsMobileMenuOpen(false);
+        }}
+        sidebarSize={sidebarSize}
         user={session.user}
       />
 
@@ -251,6 +381,16 @@ function App() {
             accounts={accounts}
             onAddAccount={handleAddAccount}
             onDeleteAccount={handleDeleteAccount}
+            transactions={transactions}
+          />
+        )}
+
+        {activePage === "Orçamentos" && (
+          <Budgets
+            budgets={budgets}
+            onAddBudget={handleAddBudget}
+            onDeleteBudget={handleDeleteBudget}
+            onUpdateBudget={handleUpdateBudget}
             transactions={transactions}
           />
         )}

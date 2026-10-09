@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const categories = [
   "Alimentação",
@@ -29,6 +30,14 @@ function formatDateForInput(date) {
 
   const [year, month, day] = date.split("-");
   return `${day}/${month}/${year}`;
+}
+
+function getTodayForInput() {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, "0");
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+
+  return `${day}/${month}/${today.getFullYear()}`;
 }
 
 function toIsoDate(date) {
@@ -79,7 +88,7 @@ function Transactions({
   const [value, setValue] = useState("");
   const [category, setCategory] = useState("");
   const [type, setType] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(getTodayForInput());
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [note, setNote] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -87,6 +96,9 @@ function Transactions({
   const [dateError, setDateError] = useState("");
   const [formError, setFormError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const incomeTotal = transactions
     .filter((transaction) => transaction.type === "income")
@@ -100,7 +112,7 @@ function Transactions({
     setValue("");
     setCategory("");
     setType("");
-    setDate("");
+    setDate(getTodayForInput());
     setAccountId(accounts[0]?.id ?? "");
     setNote("");
     setDateError("");
@@ -127,18 +139,24 @@ function Transactions({
     setShowForm(true);
   }
 
-  async function handleDeleteClick(transaction) {
-    const shouldDelete = window.confirm(
-      `Excluir o lançamento "${transaction.description}"?`,
-    );
+  function handleDeleteClick(transaction) {
+    setTransactionToDelete(transaction);
+    setDeleteError("");
+  }
 
-    if (shouldDelete) {
-      const error = await onDeleteTransaction(transaction.id);
+  async function confirmDelete() {
+    setIsDeleting(true);
 
-      if (error) {
-        window.alert(`Não foi possível excluir o lançamento: ${error}`);
-      }
+    const error = await onDeleteTransaction(transactionToDelete.id);
+
+    if (error) {
+      setDeleteError(error);
+      setIsDeleting(false);
+      return;
     }
+
+    setTransactionToDelete(null);
+    setIsDeleting(false);
   }
 
   async function handleSubmit(event) {
@@ -406,6 +424,17 @@ function Transactions({
           </section>
         </>
       )}
+
+      <ConfirmDialog
+        confirmLabel="Excluir lançamento"
+        error={deleteError}
+        isLoading={isDeleting}
+        isOpen={Boolean(transactionToDelete)}
+        message={`O lançamento "${transactionToDelete?.description ?? ""}" será removido permanentemente.`}
+        onCancel={() => setTransactionToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Excluir lançamento?"
+      />
     </section>
   );
 }
