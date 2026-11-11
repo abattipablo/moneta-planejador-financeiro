@@ -99,3 +99,28 @@ select option, select optgroup { background: #18122c; color: #f4efff; }
 /* Ganho extra de legibilidade. */
 .brand h1 { font-size: 25px; }.nav-item { font-size: 14px; }.page-header h1 { font-size: 31px; }.page-header p { font-size: 15px; }.summary-card strong, .transaction-totals strong, .budget-totals strong { font-size: 23px; }.summary-card span, .transaction-totals span, .budget-totals span { font-size: 13px; }.panel h2, .account-card h2 { font-size: 17px; }.recent-transaction strong, .transaction-row strong { font-size: 13px; }.recent-transaction span, .transaction-row span { font-size: 12px; }.primary-button, .secondary-button { font-size: 13px; }.form-heading h2 { font-size: 17px; }.form-heading p, .form-field, .form-error, .form-submit-error { font-size: 12px; }.form-field input, .form-field select { font-size: 13px; }
 .form-field input, .form-field select { font-size: 11px; }
+
+/* Metas financeiras: resumo geral, formulário e progresso de cada objetivo. */
+.goal-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.goal-totals article { display: grid; gap: 9px; padding: 15px; border: 1px solid #30264d; border-radius: 10px; background: #18122c; }
+.goal-totals span { color: #a39ab9; font-size: 12px; }
+.goal-totals strong { font-size: 22px; }
+.goal-list { min-height: 360px; margin-top: 14px; }
+.goal-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.goal-card { display: grid; gap: 16px; padding: 16px; border: 1px solid #30264d; border-radius: 9px; background: #0d0a18; }
+.goal-card-header, .goal-values, .goal-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.goal-card-header h3 { margin: 5px 0 0; font-size: 15px; }
+.goal-card-header span, .goal-values span { color: #a39ab9; font-size: 10px; }
+.goal-card-header > strong { color: #b492ff; font-size: 18px; }
+.goal-progress { height: 8px; overflow: hidden; border-radius: 99px; background: #382d57; }
+.goal-progress span { display: block; height: 100%; border-radius: inherit; background: #9775ff; }
+.goal-progress span.completed { background: #62e5a6; }
+.goal-values strong { display: block; margin-top: 4px; color: #f4efff; font-size: 12px; }
+.goal-actions { justify-content: flex-end; padding-top: 3px; }
+.goal-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; min-height: 310px; }
+.goal-form .form-heading, .goal-form .form-field-wide, .goal-form .form-actions { grid-column: span 3; }
+
+@media (max-width: 760px) {
+  .goal-totals, .goal-cards, .goal-form { grid-template-columns: 1fr; }
+  .goal-form .form-heading, .goal-form .form-field-wide, .goal-form .form-actions { grid-column: span 1; }
+}

@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import Accounts from "./pages/Accounts";
 import Auth from "./pages/Auth";
 import Budgets from "./pages/Budgets";
+import Goals from "./pages/Goals";
 import Overview from "./pages/Overview";
 import Transactions from "./pages/Transactions";
 import { supabase } from "./lib/supabase";
@@ -23,11 +24,20 @@ function formatBudgetFromDatabase(budget) {
   };
 }
 
+function formatGoalFromDatabase(goal) {
+  return {
+    ...goal,
+    targetAmount: Number(goal.target_amount),
+    savedAmount: Number(goal.saved_amount),
+  };
+}
+
 function App() {
   // O App guarda os dados que precisam ser usados em mais de uma página.
   const [activePage, setActivePage] = useState("Visão Geral");
   const [accounts, setAccounts] = useState([]);
   const [budgets, setBudgets] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [session, setSession] = useState(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
@@ -98,7 +108,7 @@ function App() {
       setIsLoadingData(true);
       setDataError("");
 
-      const [accountsResult, transactionsResult, budgetsResult] = await Promise.all([
+      const [accountsResult, transactionsResult, budgetsResult, goalsResult] = await Promise.all([
         supabase.from("accounts").select("id, name, type").order("created_at", { ascending: false }),
         supabase
           .from("transactions")
@@ -108,16 +118,26 @@ function App() {
           .from("budgets")
           .select("id, category, month, limit_amount")
           .order("month", { ascending: false }),
+        supabase
+          .from("goals")
+          .select("id, name, target_amount, saved_amount, deadline")
+          .order("created_at", { ascending: false }),
       ]);
 
       if (!isMounted) return;
 
-      if (accountsResult.error || transactionsResult.error || budgetsResult.error) {
+      if (
+        accountsResult.error ||
+        transactionsResult.error ||
+        budgetsResult.error ||
+        goalsResult.error
+      ) {
         setDataError("Não foi possível carregar seus dados. Tente atualizar a página.");
       } else {
         setAccounts(accountsResult.data);
         setTransactions(transactionsResult.data.map(formatTransactionFromDatabase));
         setBudgets(budgetsResult.data.map(formatBudgetFromDatabase));
+        setGoals(goalsResult.data.map(formatGoalFromDatabase));
       }
 
       setIsLoadingData(false);
@@ -292,6 +312,60 @@ function App() {
     return null;
   }
 
+  async function handleAddGoal(newGoal) {
+    const { data, error } = await supabase
+      .from("goals")
+      .insert({
+        user_id: session.user.id,
+        name: newGoal.name,
+        target_amount: newGoal.targetAmount,
+        saved_amount: newGoal.savedAmount,
+        deadline: newGoal.deadline,
+      })
+      .select("id, name, target_amount, saved_amount, deadline")
+      .single();
+
+    if (error) return error.message;
+
+    setGoals((currentGoals) => [formatGoalFromDatabase(data), ...currentGoals]);
+
+    return null;
+  }
+
+  async function handleUpdateGoal(updatedGoal) {
+    const { data, error } = await supabase
+      .from("goals")
+      .update({
+        name: updatedGoal.name,
+        target_amount: updatedGoal.targetAmount,
+        saved_amount: updatedGoal.savedAmount,
+        deadline: updatedGoal.deadline,
+      })
+      .eq("id", updatedGoal.id)
+      .select("id, name, target_amount, saved_amount, deadline")
+      .single();
+
+    if (error) return error.message;
+
+    setGoals((currentGoals) =>
+      currentGoals.map((goal) =>
+        goal.id === data.id ? formatGoalFromDatabase(data) : goal,
+      ),
+    );
+
+    return null;
+  }
+
+  async function handleDeleteGoal(goalId) {
+    const { error } = await supabase.from("goals").delete().eq("id", goalId);
+
+    if (error) return error.message;
+
+    setGoals((currentGoals) => currentGoals.filter((goal) => goal.id !== goalId));
+
+    return null;
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
   }
@@ -392,6 +466,15 @@ function App() {
             onDeleteBudget={handleDeleteBudget}
             onUpdateBudget={handleUpdateBudget}
             transactions={transactions}
+          />
+        )}
+
+        {activePage === "Metas" && (
+          <Goals
+            goals={goals}
+            onAddGoal={handleAddGoal}
+            onDeleteGoal={handleDeleteGoal}
+            onUpdateGoal={handleUpdateGoal}
           />
         )}
       </main>
