@@ -1,7 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap");
 
 :root { color: #241b0c; background: #e4d6bd; color-scheme: light; font-family: "Manrope", "Segoe UI", sans-serif; font-synthesis: none; --sand: #e4d6bd; --oat: #d4b895; --sage: #8b9d83; --moss: #1d8631; --clay: #d4b895; --terracotta: #d40002; --ochre: #fab601; --ochre-ink: #684b00; --ink: #241b0c; --muted: #665b48; --surface: #f0e4ce; --line: #cbbb9f; --positive: #146b26; --negative: #a90002; --action: #176f2a; --on-action: #f8f0df; --shadow: #493b2224; }
-:root[data-theme="dark"] { color: #f4ead6; background: #130c00; color-scheme: dark; --sand: #130c00; --oat: #281b0b; --sage: #294b2d; --moss: #65b96d; --clay: #38250e; --ochre-ink: #ffd55c; --ink: #f4ead6; --muted: #b9a98e; --surface: #1b1207; --line: #3b2a17; --positive: #78ce80; --negative: #ff7774; --action: #287a36; --on-action: #fff6e7; --shadow: #00000085; }
+:root[data-theme="dark"] { color: #f2e8d5; background: #1a120b; color-scheme: dark; --sand: #1a120b; --oat: #382718; --sage: #51402a; --moss: #65b96d; --clay: #49331c; --ochre-ink: #ffd55c; --ink: #f2e8d5; --muted: #bdae97; --surface: #24190f; --line: #42301f; --positive: #78ce80; --negative: #ff7774; --action: #287a36; --on-action: #fff6e7; --shadow: #09060285; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
 strong,.summary-card,.transaction-totals,.budget-totals,.goal-totals,.investment-totals,.account-card-balance,.investment-details,.fixed-income-details,.market-indicator-cards,.dividend-summary { font-variant-numeric: tabular-nums; }
@@ -103,3 +103,21 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline: 3px sol
 :root[data-theme="dark"] .data-error { background: #3a1511; }
 :root[data-theme="dark"] .app-menu-trigger { box-shadow: 0 10px 28px var(--shadow); }
 .primary-button,.danger-button,.nav-item.active { color: var(--on-action); }
+
+/* Ações da carteira ficam visíveis como botões, com cores por finalidade. */
+.investment-card-footer > div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.portfolio-action { min-height: 36px; padding: 8px 12px; border: 1px solid transparent; border-radius: 12px; font-size: 11px; font-weight: 700; transition: background-color 180ms ease,border-color 180ms ease,transform 180ms ease; }
+.portfolio-action:hover { transform: translateY(-1px); }
+.portfolio-buy { border-color: #1d863155; background: #1d86311a; color: #146b26; }
+.portfolio-buy:hover { background: #1d86312b; }
+.portfolio-sell { border-color: #fab60180; background: #fab60124; color: #684b00; }
+.portfolio-sell:hover { background: #fab60138; }
+.portfolio-delete { border-color: #d400023d; background: #d4000212; color: #a90002; }
+.portfolio-delete:hover { background: #d4000226; }
+:root[data-theme="dark"] .portfolio-buy { border-color: #65b96d66; background: #65b96d1c; color: #8cda94; }
+:root[data-theme="dark"] .portfolio-buy:hover { background: #65b96d30; }
+:root[data-theme="dark"] .portfolio-sell { border-color: #fab60170; background: #fab6011c; color: #ffd76b; }
+:root[data-theme="dark"] .portfolio-sell:hover { background: #fab60130; }
+:root[data-theme="dark"] .portfolio-delete { border-color: #ff777466; background: #ff77741a; color: #ff9995; }
+:root[data-theme="dark"] .portfolio-delete:hover { background: #ff77742b; }
+@media(max-width:760px) { .investment-card-footer > div { width: 100%; }.portfolio-action { flex: 1; } }
