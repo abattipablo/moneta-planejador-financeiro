@@ -1,11 +1,1 @@
-/* Faz padding e border entrarem no cálculo do tamanho dos elementos. */
-* {
-  box-sizing: border-box;
-}
-
-/* Remove o espaçamento padrão e define a fonte geral do app. */
-body {
-  margin: 0;
-  min-width: 320px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
-}
+html { min-width: 320px; background: var(--sand); }

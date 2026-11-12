@@ -65,6 +65,19 @@ function formatInvestmentDividendFromDatabase(dividend) {
   };
 }
 
+function formatFixedIncomeFromDatabase(investment) {
+  return {
+    ...investment,
+    annualRate: Number(investment.annual_rate),
+    amountInvested: Number(investment.amount_invested),
+    currentAmount: investment.current_amount === null
+      ? null
+      : Number(investment.current_amount),
+    maturityDate: investment.maturity_date,
+    purchaseDate: investment.purchase_date,
+  };
+}
+
 async function getFunctionErrorMessage(error) {
   if (!error?.context) return error?.message ?? "Não foi possível consultar os dados.";
 
@@ -86,23 +99,34 @@ function App() {
   const [investmentOperations, setInvestmentOperations] = useState([]);
   const [investmentQuotes, setInvestmentQuotes] = useState({});
   const [investmentDividends, setInvestmentDividends] = useState([]);
+  const [fixedIncomeInvestments, setFixedIncomeInvestments] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [session, setSession] = useState(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataError, setDataError] = useState("");
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem("moneta-theme");
+
+    if (savedTheme) return savedTheme;
+
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
   const [sidebarSize, setSidebarSize] = useState(
     () => localStorage.getItem("moneta-sidebar-size") ?? "expanded",
-  );
-  const [isSidebarManuallyHidden, setIsSidebarManuallyHidden] = useState(
-    () => localStorage.getItem("moneta-sidebar-hidden") === "true",
   );
   const [isCompactScreen, setIsCompactScreen] = useState(
     () => window.matchMedia("(max-width: 760px)").matches,
   );
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isSidebarHidden =
-    isSidebarManuallyHidden || (isCompactScreen && !isMobileMenuOpen);
+  const isSidebarHidden = isCompactScreen && !isMobileMenuOpen;
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("moneta-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 760px)");
@@ -164,6 +188,7 @@ function App() {
         investmentsResult,
         investmentOperationsResult,
         investmentDividendsResult,
+        fixedIncomeResult,
       ] = await Promise.all([
         supabase.from("accounts").select("id, name, type").order("created_at", { ascending: false }),
         supabase
@@ -190,6 +215,10 @@ function App() {
           .from("investment_dividends")
           .select("id, investment_id, external_id, event_date, amount_per_unit, source, fetched_at")
           .order("event_date", { ascending: false }),
+        supabase
+          .from("fixed_income_investments")
+          .select("id, name, category, issuer, indexer, annual_rate, amount_invested, current_amount, purchase_date, maturity_date, liquidity")
+          .order("purchase_date", { ascending: false }),
       ]);
 
       if (!isMounted) return;
@@ -201,7 +230,8 @@ function App() {
         goalsResult.error ||
         investmentsResult.error ||
         investmentOperationsResult.error ||
-        investmentDividendsResult.error
+        investmentDividendsResult.error ||
+        fixedIncomeResult.error
       ) {
         setDataError("Não foi possível carregar seus dados. Tente atualizar a página.");
       } else {
@@ -228,6 +258,9 @@ function App() {
         );
         setInvestmentDividends(
           investmentDividendsResult.data.map(formatInvestmentDividendFromDatabase),
+        );
+        setFixedIncomeInvestments(
+          fixedIncomeResult.data.map(formatFixedIncomeFromDatabase),
         );
       }
 
@@ -714,6 +747,55 @@ function App() {
     return null;
   }
 
+  async function handleSaveFixedIncome(investment, editingId) {
+    const values = {
+      amount_invested: investment.amountInvested,
+      annual_rate: investment.annualRate,
+      category: investment.category,
+      current_amount: investment.currentAmount ?? null,
+      issuer: investment.issuer,
+      indexer: investment.indexer,
+      liquidity: investment.liquidity || null,
+      maturity_date: investment.maturityDate || null,
+      name: investment.name,
+      purchase_date: investment.purchaseDate,
+      user_id: session.user.id,
+    };
+
+    const query = editingId
+      ? supabase.from("fixed_income_investments").update(values).eq("id", editingId)
+      : supabase.from("fixed_income_investments").insert(values);
+    const { data, error } = await query
+      .select("id, name, category, issuer, indexer, annual_rate, amount_invested, current_amount, purchase_date, maturity_date, liquidity")
+      .single();
+
+    if (error) return error.message;
+
+    const formattedInvestment = formatFixedIncomeFromDatabase(data);
+    setFixedIncomeInvestments((currentInvestments) => editingId
+      ? currentInvestments.map((item) => (
+        item.id === editingId ? formattedInvestment : item
+      ))
+      : [formattedInvestment, ...currentInvestments]);
+
+    return null;
+  }
+
+  async function handleDeleteFixedIncome(investmentId) {
+    const { error } = await supabase
+      .from("fixed_income_investments")
+      .delete()
+      .eq("id", investmentId);
+
+    if (error) return error.message;
+
+    setFixedIncomeInvestments((currentInvestments) => (
+      currentInvestments.filter((investment) => investment.id !== investmentId)
+    ));
+
+    return null;
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
   }
@@ -725,11 +807,6 @@ function App() {
 
       return nextSize;
     });
-  }
-
-  function handleSidebarVisibility(isHidden) {
-    setIsSidebarManuallyHidden(isHidden);
-    localStorage.setItem("moneta-sidebar-hidden", String(isHidden));
   }
 
   if (isLoadingSession) {
@@ -754,25 +831,36 @@ function App() {
         <button
           className="app-menu-trigger"
           onClick={() => {
-            handleSidebarVisibility(false);
             setIsMobileMenuOpen(true);
           }}
           type="button"
         >
-          ☰ Menu
+          Mostrar menu
         </button>
+      )}
+
+      {isCompactScreen && isMobileMenuOpen && (
+        <button
+          aria-label="Fechar menu"
+          className="mobile-menu-backdrop"
+          onClick={() => setIsMobileMenuOpen(false)}
+          type="button"
+        />
       )}
 
       <Sidebar
         activePage={activePage}
-        onNavigate={setActivePage}
-        onSignOut={handleSignOut}
-        onToggleSize={handleToggleSidebarSize}
-        onHide={() => {
-          handleSidebarVisibility(true);
-          setIsMobileMenuOpen(false);
+        onNavigate={(page) => {
+          setActivePage(page);
+          if (isCompactScreen) setIsMobileMenuOpen(false);
         }}
+        onSignOut={handleSignOut}
+        onToggleTheme={() => {
+          setTheme((currentTheme) => currentTheme === "light" ? "dark" : "light");
+        }}
+        onToggleSize={handleToggleSidebarSize}
         sidebarSize={sidebarSize}
+        theme={theme}
         user={session.user}
       />
 
@@ -828,16 +916,19 @@ function App() {
 
         {activePage === "Investimentos" && (
           <Investments
+            fixedIncomeInvestments={fixedIncomeInvestments}
             investmentDividends={investmentDividends}
             investmentOperations={investmentOperations}
             investmentQuotes={investmentQuotes}
             investments={investments}
             onAddOperation={handleAddInvestmentOperation}
+            onDeleteFixedIncome={handleDeleteFixedIncome}
             onDeleteInvestment={handleDeleteInvestment}
             onDeleteOperation={handleDeleteInvestmentOperation}
             onGetQuotes={handleGetInvestmentQuotes}
             onGetMarketIndicators={handleGetMarketIndicators}
             onRefreshDividends={handleRefreshInvestmentDividends}
+            onSaveFixedIncome={handleSaveFixedIncome}
             onUpdateOperation={handleUpdateInvestmentOperation}
           />
         )}

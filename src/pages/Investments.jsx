@@ -1,5 +1,7 @@
 import { useState } from "react";
+import CollapsibleSection from "../components/CollapsibleSection";
 import ConfirmDialog from "../components/ConfirmDialog";
+import FixedIncomeSection from "../components/FixedIncomeSection";
 
 const investmentTypes = ["Ações", "Fundos imobiliários", "ETFs", "Outros"];
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -89,7 +91,7 @@ function leavesNegativeBalance(position, operationToSave, editingId) {
   });
 }
 
-function Investments({ investmentDividends, investmentOperations, investmentQuotes, investments, onAddOperation, onDeleteInvestment, onDeleteOperation, onGetMarketIndicators, onGetQuotes, onRefreshDividends, onUpdateOperation }) {
+function Investments({ fixedIncomeInvestments, investmentDividends, investmentOperations, investmentQuotes, investments, onAddOperation, onDeleteFixedIncome, onDeleteInvestment, onDeleteOperation, onGetMarketIndicators, onGetQuotes, onRefreshDividends, onSaveFixedIncome, onUpdateOperation }) {
   const [showForm, setShowForm] = useState(false);
   const [operationType, setOperationType] = useState("buy");
   const [ticker, setTicker] = useState("");
@@ -116,12 +118,17 @@ function Investments({ investmentDividends, investmentOperations, investmentQuot
 
   const positions = investments.map((investment) => calculatePosition(investment, investmentOperations, investmentQuotes[investment.ticker]));
   const openPositions = positions.filter((position) => position.totalQuantity > 0);
-  const totalInvested = openPositions.reduce((total, position) => total + position.positionCost, 0);
-  const currentTotal = openPositions.reduce((total, position) => total + (position.currentValue ?? position.positionCost), 0);
+  const variableIncomeInvested = openPositions.reduce((total, position) => total + position.positionCost, 0);
+  const variableIncomeCurrent = openPositions.reduce((total, position) => total + (position.currentValue ?? position.positionCost), 0);
+  const fixedIncomeInvested = fixedIncomeInvestments.reduce((total, investment) => total + investment.amountInvested, 0);
+  const fixedIncomeCurrent = fixedIncomeInvestments.reduce((total, investment) => total + (investment.currentAmount ?? investment.amountInvested), 0);
+  const totalInvested = variableIncomeInvested + fixedIncomeInvested;
+  const currentTotal = variableIncomeCurrent + fixedIncomeCurrent;
   const realizedResult = positions.reduce((total, position) => total + position.realizedResult, 0);
   const unrealizedResult = openPositions.reduce((total, position) => total + position.unrealizedResult, 0);
-  const totalReturn = realizedResult + unrealizedResult;
-  const returnPercentage = totalInvested > 0 ? (unrealizedResult / totalInvested) * 100 : 0;
+  const fixedIncomeResult = fixedIncomeCurrent - fixedIncomeInvested;
+  const totalReturn = realizedResult + unrealizedResult + fixedIncomeResult;
+  const returnPercentage = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
   const lastQuoteUpdate = Object.values(investmentQuotes)
     .map((quote) => quote.updatedAt)
     .filter(Boolean)
@@ -370,14 +377,18 @@ function Investments({ investmentDividends, investmentOperations, investmentQuot
           <section className="investment-totals" aria-label="Resumo dos investimentos">
             <article><span>Custo da posição</span><strong>{currencyFormatter.format(totalInvested)}</strong></article>
             <article><span>Patrimônio atual</span><strong>{currencyFormatter.format(currentTotal)}</strong></article>
-            <article><span>Resultado total</span><strong className={totalReturn < 0 ? "expense-text" : "income-text"}>{currencyFormatter.format(totalReturn)}</strong><small className={unrealizedResult < 0 ? "expense-text" : "income-text"}>Vendas: {currencyFormatter.format(realizedResult)} · Posição: {returnPercentage.toFixed(2)}%</small></article>
+            <article><span>Resultado total</span><strong className={totalReturn < 0 ? "expense-text" : "income-text"}>{currencyFormatter.format(totalReturn)}</strong><small className={totalReturn < 0 ? "expense-text" : "income-text"}>Vendas: {currencyFormatter.format(realizedResult)} · Carteira: {returnPercentage.toFixed(2)}%</small></article>
           </section>
 
-          <section className="market-indicators panel" aria-label="Indicadores do mercado">
-            <div className="panel-title-row">
-              <div><h2>Indicadores</h2><p>Referências econômicas oficiais para comparar seus investimentos.</p></div>
-              <button className="secondary-button" disabled={isRefreshingIndicators} onClick={refreshIndicators} type="button">{isRefreshingIndicators ? "Atualizando..." : "Atualizar indicadores"}</button>
-            </div>
+          <FixedIncomeSection investments={fixedIncomeInvestments} onDelete={onDeleteFixedIncome} onSave={onSaveFixedIncome} />
+
+          <CollapsibleSection
+            actions={<button className="secondary-button" disabled={isRefreshingIndicators} onClick={refreshIndicators} type="button">{isRefreshingIndicators ? "Atualizando..." : "Atualizar indicadores"}</button>}
+            className="market-indicators"
+            description="Selic, CDI e IPCA para comparar seus investimentos."
+            meta={marketIndicators.length > 0 ? `${marketIndicators.length} indicadores` : "Não atualizado"}
+            title="Indicadores"
+          >
             {marketIndicators.length > 0 ? (
               <div className="market-indicator-cards">
                 {marketIndicators.map((indicator) => (
@@ -385,13 +396,15 @@ function Investments({ investmentDividends, investmentOperations, investmentQuot
                 ))}
               </div>
             ) : <p className="empty-message">Clique em atualizar para consultar Selic, CDI e IPCA.</p>}
-          </section>
+          </CollapsibleSection>
 
-          <section className="investment-dividends panel" aria-label="Dividendos estimados">
-            <div className="panel-title-row">
-              <div><h2>Dividendos estimados</h2><p>Calculados pela quantidade que você possuía na data informada pela fonte.</p></div>
-              <button className="secondary-button" disabled={isRefreshingDividends || investmentOperations.length === 0} onClick={refreshDividends} type="button">{isRefreshingDividends ? "Atualizando..." : "Atualizar dividendos"}</button>
-            </div>
+          <CollapsibleSection
+            actions={<button className="secondary-button" disabled={isRefreshingDividends || investmentOperations.length === 0} onClick={refreshDividends} type="button">{isRefreshingDividends ? "Atualizando..." : "Atualizar dividendos"}</button>}
+            className="investment-dividends"
+            description="Proventos estimados conforme sua posição em cada data."
+            meta={currencyFormatter.format(totalDividends)}
+            title="Dividendos"
+          >
             <div className="dividend-summary"><span>Total estimado</span><strong>{currencyFormatter.format(totalDividends)}</strong></div>
             {dividendEntries.length > 0 ? (
               <div className="dividend-list">
@@ -404,10 +417,15 @@ function Investments({ investmentDividends, investmentOperations, investmentQuot
               </div>
             ) : <p className="empty-message">Nenhum dividendo encontrado para sua posição.</p>}
             <p className="dividend-disclaimer">Estimativa baseada em dados do Yahoo Finance. Confirme os valores líquidos no extrato da corretora.</p>
-          </section>
+          </CollapsibleSection>
 
-          <section className="investment-list panel" aria-label="Carteira de investimentos">
-            <div className="panel-title-row"><div><h2>Sua carteira</h2><p>As cotações só mudam quando você atualiza os preços.{lastQuoteUpdate ? ` Última atualização: ${formatQuoteDate(lastQuoteUpdate)}.` : ""}</p></div><span>{openPositions.length} {openPositions.length === 1 ? "ativo" : "ativos"}</span></div>
+          <CollapsibleSection
+            className="investment-list"
+            defaultOpen
+            description={`Cotações atualizadas manualmente.${lastQuoteUpdate ? ` Última atualização: ${formatQuoteDate(lastQuoteUpdate)}.` : ""}`}
+            meta={`${openPositions.length} ${openPositions.length === 1 ? "ativo" : "ativos"}`}
+            title="Sua carteira"
+          >
             {openPositions.length > 0 ? (
               <div className="investment-cards">
                 {openPositions.map((position) => {
@@ -422,18 +440,22 @@ function Investments({ investmentDividends, investmentOperations, investmentQuot
                 })}
               </div>
             ) : <p className="empty-message">Nenhum ativo com posição aberta.</p>}
-          </section>
+          </CollapsibleSection>
 
           {investmentOperations.length > 0 && (
-            <section className="investment-history panel">
-              <div className="panel-title-row"><h2>Histórico de operações</h2><span>{investmentOperations.length} operações</span></div>
+            <CollapsibleSection
+              className="investment-history"
+              description="Compras e vendas registradas na carteira."
+              meta={`${investmentOperations.length} operações`}
+              title="Histórico de operações"
+            >
               {investmentOperations.map((operation) => {
                 const investment = investments.find((item) => item.id === operation.investmentId);
                 const isOperationSale = operation.operationType === "sell";
                 const operationValue = operation.quantity * operation.unitPrice + (isOperationSale ? -operation.fees : operation.fees);
                 return <div className="investment-operation" key={operation.id}><div><strong>{investment?.ticker} · {isOperationSale ? "Venda" : "Compra"}</strong><span>{quantityFormatter.format(operation.quantity)} unidades · {formatDate(operation.operationDate)}</span></div><div><strong className={isOperationSale ? "income-text" : ""}>{currencyFormatter.format(operationValue)}</strong><button className="edit-button" onClick={() => startEditing(operation)} type="button">Editar</button><button className="delete-button" onClick={() => { setOperationToDelete(operation); setDeleteError(""); }} type="button">Excluir</button></div></div>;
               })}
-            </section>
+            </CollapsibleSection>
           )}
         </>
       )}

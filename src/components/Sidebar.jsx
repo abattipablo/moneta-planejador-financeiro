@@ -1,19 +1,20 @@
 const menuItems = [
-  "Visão Geral",
-  "Lançamentos",
-  "Contas",
-  "Orçamentos",
-  "Metas",
-  "Investimentos",
+  { compactLabel: "VG", label: "Visão Geral" },
+  { compactLabel: "LA", label: "Lançamentos" },
+  { compactLabel: "CO", label: "Contas" },
+  { compactLabel: "OR", label: "Orçamentos" },
+  { compactLabel: "ME", label: "Metas" },
+  { compactLabel: "IN", label: "Investimentos" },
 ];
 
 function Sidebar({
   activePage,
   onNavigate,
   onSignOut,
+  onToggleTheme,
   onToggleSize,
-  onHide,
   sidebarSize,
+  theme,
   user,
 }) {
   const userName = user.email?.split("@")[0] ?? "Usuário";
@@ -23,7 +24,7 @@ function Sidebar({
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="brand">
-          <h1>Moneta</h1>
+          <h1>{sidebarSize === "compact" ? "M" : "Moneta"}</h1>
           <span>PLANEJADOR PESSOAL</span>
         </div>
         <button
@@ -32,7 +33,10 @@ function Sidebar({
           title={sidebarSize === "expanded" ? "Menu compacto" : "Menu expandido"}
           type="button"
         >
-          {sidebarSize === "expanded" ? "‹" : "›"}
+          <span
+            aria-hidden="true"
+            className={`sidebar-chevron ${sidebarSize === "compact" ? "is-compact" : ""}`}
+          />
         </button>
       </div>
 
@@ -40,17 +44,33 @@ function Sidebar({
         {/* Cria um botão para cada página disponível no menu. */}
         {menuItems.map((item) => (
           <button
-            className={activePage === item ? "nav-item active" : "nav-item"}
-            key={item}
-            onClick={() => onNavigate(item)}
+            aria-label={item.label}
+            className={activePage === item.label ? "nav-item active" : "nav-item"}
+            key={item.label}
+            onClick={() => onNavigate(item.label)}
+            title={sidebarSize === "compact" ? item.label : undefined}
             type="button"
           >
-            {item}
+            {sidebarSize === "compact" ? (
+              <span aria-hidden="true" className="nav-short-label">
+                {item.compactLabel}
+              </span>
+            ) : item.label}
           </button>
         ))}
       </nav>
 
       <div className="sidebar-footer">
+        <button
+          aria-label={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"}
+          className="theme-button"
+          onClick={onToggleTheme}
+          title={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"}
+          type="button"
+        >
+          <span aria-hidden="true" className="theme-button-indicator" />
+          <strong>{theme === "light" ? "Modo escuro" : "Modo claro"}</strong>
+        </button>
         <div className="profile">
           <span>{initials}</span>
           <div>
@@ -60,9 +80,6 @@ function Sidebar({
             </button>
           </div>
         </div>
-        <button className="sidebar-hide-button" onClick={onHide} type="button">
-          Ocultar menu
-        </button>
       </div>
     </aside>
   );
