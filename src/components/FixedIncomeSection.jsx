@@ -33,8 +33,8 @@ const emptyForm = {
   liquidity: "",
 };
 
-function FixedIncomeSection({ investments, onDelete, onSave }) {
-  const [showForm, setShowForm] = useState(false);
+function FixedIncomeSection({ investments, onDelete, onSave, embedded = false, entryOpen = false, onCancelEntry }) {
+  const [showForm, setShowForm] = useState(embedded || entryOpen);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -53,6 +53,7 @@ function FixedIncomeSection({ investments, onDelete, onSave }) {
     setEditingId(null);
     setForm({ ...emptyForm, purchaseDate: getToday() });
     setFormError("");
+    onCancelEntry?.();
   }
 
   function startEditing(investment) {
@@ -125,9 +126,27 @@ function FixedIncomeSection({ investments, onDelete, onSave }) {
     setItemToDelete(null);
   }
 
+  const formContent = showForm ? (
+    <form className="fixed-income-form" noValidate onSubmit={handleSubmit}>
+      <label className="form-field" htmlFor="fixed-income-name">Nome do investimento *<input id="fixed-income-name" name="name" onChange={updateField} placeholder="Ex.: Tesouro Selic 2029" value={form.name} /></label>
+      <label className="form-field" htmlFor="fixed-income-category">Tipo *<select id="fixed-income-category" name="category" onChange={updateField} value={form.category}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+      <label className="form-field" htmlFor="fixed-income-issuer">Instituição ou emissor *<input id="fixed-income-issuer" name="issuer" onChange={updateField} value={form.issuer} /></label>
+      <label className="form-field" htmlFor="fixed-income-indexer">Indexador *<select id="fixed-income-indexer" name="indexer" onChange={updateField} value={form.indexer}>{indexers.map((indexer) => <option key={indexer}>{indexer}</option>)}</select></label>
+      <label className="form-field" htmlFor="fixed-income-rate">Taxa adicional ao ano (%)<input id="fixed-income-rate" min="0" name="annualRate" onChange={updateField} placeholder="Ex.: 0,15" step="0.01" type="number" value={form.annualRate} /></label>
+      <label className="form-field" htmlFor="fixed-income-amount">Valor aplicado *<input id="fixed-income-amount" min="0.01" name="amountInvested" onChange={updateField} step="0.01" type="number" value={form.amountInvested} /></label>
+      <label className="form-field" htmlFor="fixed-income-current">Valor atual<input id="fixed-income-current" min="0" name="currentAmount" onChange={updateField} placeholder="Atualização manual" step="0.01" type="number" value={form.currentAmount} /></label>
+      <label className="form-field" htmlFor="fixed-income-purchase-date">Data da aplicação *<input id="fixed-income-purchase-date" name="purchaseDate" onChange={updateField} type="date" value={form.purchaseDate} /></label>
+      <label className="form-field" htmlFor="fixed-income-maturity-date">Vencimento<input id="fixed-income-maturity-date" min={form.purchaseDate} name="maturityDate" onChange={updateField} type="date" value={form.maturityDate} /></label>
+      <label className="form-field form-field-wide" htmlFor="fixed-income-liquidity">Liquidez<input id="fixed-income-liquidity" name="liquidity" onChange={updateField} placeholder="Ex.: diária ou somente no vencimento" value={form.liquidity} /></label>
+      <div className="form-actions">{formError && <span className="form-submit-error">{formError}</span>}<button className="secondary-button" onClick={closeForm} type="button">Cancelar</button><button className="primary-button" disabled={isSaving} type="submit">{isSaving ? "Salvando..." : editingId ? "Salvar alterações" : "Salvar aplicação"}</button></div>
+    </form>
+  ) : null;
+
+  if (embedded) return <section className="panel embedded-fixed-income-entry">{formContent}</section>;
+
   return (
     <CollapsibleSection
-      actions={!showForm && <button className="secondary-button" onClick={() => setShowForm(true)} type="button">Nova aplicação</button>}
+      actions={null}
       className="fixed-income"
       description="Tesouro Direto, CDBs e outros títulos cadastrados manualmente."
       forceOpen={showForm}

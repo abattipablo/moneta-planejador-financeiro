@@ -91,8 +91,9 @@ function leavesNegativeBalance(position, operationToSave, editingId) {
   });
 }
 
-function Investments({ fixedIncomeInvestments, investmentDividends, investmentOperations, investmentQuotes, investments, onAddOperation, onDeleteFixedIncome, onDeleteInvestment, onDeleteOperation, onGetMarketIndicators, onGetQuotes, onRefreshDividends, onSaveFixedIncome, onUpdateOperation }) {
+function Investments({ fixedIncomeInvestments, investmentDividends, investmentOperations, investmentQuotes, investments, onAddOperation, onDeleteInvestment, onDeleteOperation, onGetMarketIndicators, onGetQuotes, onRefreshDividends, onSaveFixedIncome, onUpdateOperation }) {
   const [showForm, setShowForm] = useState(false);
+  const [entryClass, setEntryClass] = useState("variable");
   const [operationType, setOperationType] = useState("buy");
   const [ticker, setTicker] = useState("");
   const [selectedQuote, setSelectedQuote] = useState(null);
@@ -326,7 +327,7 @@ function Investments({ fixedIncomeInvestments, investmentDividends, investmentOp
         {!showForm && (
           <div className="investment-header-actions">
             <button className="secondary-button" disabled={isRefreshing || openPositions.length === 0} onClick={refreshPrices} type="button">{isRefreshing ? "Atualizando..." : "Atualizar preços"}</button>
-            <button className="primary-button" onClick={() => setShowForm(true)} type="button">+ Registrar compra</button>
+            <button className="primary-button" onClick={() => { setEntryClass("variable"); setShowForm(true); }} type="button">+ Registrar compra</button>
           </div>
         )}
       </header>
@@ -335,7 +336,19 @@ function Investments({ fixedIncomeInvestments, investmentDividends, investmentOp
       {marketDataError && !showForm && <p className="data-error" role="alert">{marketDataError}</p>}
 
       {showForm ? (
-        <form className="investment-form panel" noValidate onSubmit={handleSubmit}>
+        <section className="investment-entry panel">
+          <div className="investment-entry-choice">
+            <span>Tipo de investimento</span>
+            <div className="investment-entry-tabs" role="tablist" aria-label="Tipo de investimento">
+              <button aria-selected={entryClass === "variable"} className={entryClass === "variable" ? "entry-tab active" : "entry-tab"} onClick={() => setEntryClass("variable")} role="tab" type="button">Renda variável</button>
+              <button aria-selected={entryClass === "fixed"} className={entryClass === "fixed" ? "entry-tab active" : "entry-tab"} onClick={() => setEntryClass("fixed")} role="tab" type="button">Renda fixa</button>
+            </div>
+          </div>
+          <div className="form-heading"><h2>Registrar compra</h2><p>{entryClass === "fixed" ? "Informe os dados da sua aplicação em Tesouro ou renda fixa." : "Busque o ticker e informe os dados reais da operação."}</p></div>
+          {entryClass === "fixed" ? (
+            <FixedIncomeSection embedded onCancelEntry={closeForm} onSave={onSaveFixedIncome} />
+          ) : (
+        <form className="investment-form" noValidate onSubmit={handleSubmit}>
           <div className="form-heading"><h2>{editingOperation ? "Editar" : "Registrar"} {isSale ? "venda" : "compra"}</h2><p>Informe os dados reais da sua operação.</p></div>
 
           <label className="form-field investment-ticker-field" htmlFor="investment-ticker">Ticker *
@@ -372,6 +385,8 @@ function Investments({ fixedIncomeInvestments, investmentDividends, investmentOp
             <button className="primary-button" disabled={isSaving || !selectedQuote} type="submit">{isSaving ? "Salvando..." : editingOperation ? "Salvar alterações" : `Salvar ${isSale ? "venda" : "compra"}`}</button>
           </div>
         </form>
+          )}
+        </section>
       ) : (
         <>
           <section className="investment-totals" aria-label="Resumo dos investimentos">
@@ -379,8 +394,6 @@ function Investments({ fixedIncomeInvestments, investmentDividends, investmentOp
             <article><span>Patrimônio atual</span><strong>{currencyFormatter.format(currentTotal)}</strong></article>
             <article><span>Resultado total</span><strong className={totalReturn < 0 ? "expense-text" : "income-text"}>{currencyFormatter.format(totalReturn)}</strong><small className={totalReturn < 0 ? "expense-text" : "income-text"}>Vendas: {currencyFormatter.format(realizedResult)} · Carteira: {returnPercentage.toFixed(2)}%</small></article>
           </section>
-
-          <FixedIncomeSection investments={fixedIncomeInvestments} onDelete={onDeleteFixedIncome} onSave={onSaveFixedIncome} />
 
           <CollapsibleSection
             actions={<button className="secondary-button" disabled={isRefreshingIndicators} onClick={refreshIndicators} type="button">{isRefreshingIndicators ? "Atualizando..." : "Atualizar indicadores"}</button>}
